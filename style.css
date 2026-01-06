@@ -13,6 +13,30 @@ html, body {
     justify-content: space-between;
 }
 
+.top-bar2 {
+    height: 50px;
+    width: 100%;
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.button-header-1,.button-header-2,.button-header-3 {
+    height: 100%;
+    width: 33.33%;
+    display: flex;
+    border: 1px solid #131313;
+    padding: auto;
+    cursor: pointer;
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.button-header-1:hover, .button-header-2:hover, .button-header-3:hover {
+    color: #fff;
+    background-color: #fff;
+}
+
 .logo {
     display: flex;
     align-items: center;
@@ -47,4 +71,11 @@ html, body {
     font-size: 24px;
     text-align: center;
     margin-top: 20px;
+}
+
+.copirate {
+    color:rgba(255, 255, 255, 0.3);
+    position: fixed;
+    bottom: 0;
+    left: 0;
 }
