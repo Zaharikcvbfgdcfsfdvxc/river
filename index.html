@@ -9,8 +9,14 @@
 <body>
 <header class="top-bar">
      <a href="index.html" class="logo">
-        <img src="img/logo.png" alt="Логотип">
+        <img src="img/logo.png" alt="Логотип RiverDub">
+        <span>RiverDub</span>
     </a>
+
+    <form class="search">
+        <input type="text" placeholder="Поиск серий, персонажей или сцен" aria-label="Поиск">
+        <button type="submit">Найти</button>
+    </form>
 
     <nav class="nav">
         <a href="index.html">Главная</a>
@@ -18,18 +24,106 @@
         <a href="index_contacts.html">Контакты</a>
     </nav>
 </header>
-<header class="top-bar2">
-    <div class="button-header-1">
 
-    </div>
-    <div class="button-header-2">
+<main class="page">
+    <section class="hero">
+        <div class="hero-text">
+            <p class="hero-tag">Премьера сезона</p>
+            <h1>Анимационный проект RiverDub</h1>
+            <p>
+                Здесь мы публикуем новые серии, behind the scenes и интервью с командой.
+                Следите за обновлениями и делитесь впечатлениями!
+            </p>
+            <div class="hero-actions">
+                <button class="primary">Смотреть трейлер</button>
+                <button class="ghost">Подписаться</button>
+            </div>
+            <div class="hero-meta">
+                <span>12 серий • 4К</span>
+                <span>Новые выпуски по пятницам</span>
+            </div>
+        </div>
+        <div class="hero-video">
+            <div class="video-frame">
+                <span class="video-label">Тизер: Город света</span>
+            </div>
+            <div class="video-info">
+                <h2>Новая серия: “Город света”</h2>
+                <p>9:42 • 1,2 млн просмотров • 2 дня назад</p>
+            </div>
+        </div>
+    </section>
 
-    </div>
-    <div class="button-header-3">
+    <section class="section">
+        <div class="section-header">
+            <h2>Свежие видео</h2>
+            <a href="#">Смотреть все</a>
+        </div>
+        <div class="video-grid">
+            <article class="video-card">
+                <div class="thumb">Серия 01</div>
+                <div class="card-body">
+                    <h3>Пробуждение реки</h3>
+                    <p>6:28 • 420 тыс. просмотров</p>
+                </div>
+            </article>
+            <article class="video-card">
+                <div class="thumb">Серия 02</div>
+                <div class="card-body">
+                    <h3>Гонка за светом</h3>
+                    <p>8:05 • 380 тыс. просмотров</p>
+                </div>
+            </article>
+            <article class="video-card">
+                <div class="thumb">Серия 03</div>
+                <div class="card-body">
+                    <h3>Подводный архив</h3>
+                    <p>7:12 • 512 тыс. просмотров</p>
+                </div>
+            </article>
+            <article class="video-card">
+                <div class="thumb">Серия 04</div>
+                <div class="card-body">
+                    <h3>Сигнал маяка</h3>
+                    <p>9:04 • 670 тыс. просмотров</p>
+                </div>
+            </article>
+        </div>
+    </section>
 
-    </div>
-</header>
-<p class="text">Главная</p>
-<p class="copirate">Все права принадлежат "AMAZON" и бла бла бла)</p>
+    <section class="section">
+        <div class="section-header">
+            <h2>Закулисье и интервью</h2>
+            <a href="#">Смотреть все</a>
+        </div>
+        <div class="video-grid">
+            <article class="video-card wide">
+                <div class="thumb">Making of</div>
+                <div class="card-body">
+                    <h3>Как мы рисовали мир RiverDub</h3>
+                    <p>14:52 • 95 тыс. просмотров</p>
+                </div>
+            </article>
+            <article class="video-card">
+                <div class="thumb">Интервью</div>
+                <div class="card-body">
+                    <h3>Диалог с режиссёром</h3>
+                    <p>11:20 • 62 тыс. просмотров</p>
+                </div>
+            </article>
+            <article class="video-card">
+                <div class="thumb">Студия</div>
+                <div class="card-body">
+                    <h3>Ночь рендеров</h3>
+                    <p>5:41 • 78 тыс. просмотров</p>
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <p>© RiverDub Studio, 2024. Все права защищены.</p>
+</footer>
 </body>
 </html>
