@@ -18,7 +18,7 @@ html, body {
 .video-bg {
     position: fixed;
     inset: 0;
-    z-index: -2;
+    z-index: 0;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.4s ease;
@@ -54,6 +54,12 @@ html, body {
     position: sticky;
     top: 0;
     z-index: 100;
+}
+
+.page,
+.footer {
+    position: relative;
+    z-index: 1;
 }
 
 .logo {
@@ -702,6 +708,10 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 32px;
+}
+
+.admin-page.admin-locked {
+    display: none;
 }
 
 .admin-auth {

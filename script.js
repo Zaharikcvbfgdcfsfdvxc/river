@@ -10,6 +10,104 @@
         });
     }
 
+    const setupAdminGate = () => {
+        const adminLinks = Array.from(document.querySelectorAll('a[href="index_admin.html"]'));
+        if (!adminLinks.length) return;
+        if (document.getElementById('admin-auth')) return;
+        if (document.getElementById('site-auth')) return;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'admin-auth hidden';
+        overlay.id = 'site-auth';
+        overlay.innerHTML = `
+            <div class="admin-auth-card">
+                <button class="admin-auth-close" type="button" id="site-auth-close" aria-label="Закрыть">×</button>
+                <p class="eyebrow">Доступ</p>
+                <h2>Вход в админ-панель</h2>
+                <p class="admin-lead">Введите логин и пароль, чтобы перейти в админку.</p>
+                <form class="admin-form" id="site-auth-form">
+                    <label>
+                        Логин
+                        <input type="text" name="login" autocomplete="username" required>
+                    </label>
+                    <label>
+                        Пароль
+                        <input type="password" name="password" autocomplete="current-password" required>
+                    </label>
+                    <button class="primary" type="submit">Войти</button>
+                    <p class="admin-note" id="site-auth-error"></p>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const closeBtn = overlay.querySelector('#site-auth-close');
+        const authForm = overlay.querySelector('#site-auth-form');
+        const authError = overlay.querySelector('#site-auth-error');
+
+        const hide = () => {
+            overlay.classList.add('hidden');
+            document.body.classList.remove('locked');
+            authError.textContent = '';
+            authForm.reset();
+        };
+
+        const show = () => {
+            overlay.classList.remove('hidden');
+            document.body.classList.add('locked');
+        };
+
+        const openGate = () => {
+            fetch('/api/me')
+                .then((res) => {
+                    if (res.ok) {
+                        window.location.href = 'index_admin.html';
+                        return;
+                    }
+                    show();
+                })
+                .catch(show);
+        };
+
+        adminLinks.forEach((link) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                openGate();
+            });
+        });
+
+        closeBtn.addEventListener('click', hide);
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                hide();
+            }
+        });
+
+        authForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            authError.textContent = '';
+            const data = new FormData(authForm);
+            const login = String(data.get('login') || '').trim();
+            const password = String(data.get('password') || '').trim();
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ login, password })
+            })
+                .then((res) => {
+                    if (!res.ok) {
+                        throw new Error('invalid');
+                    }
+                    window.location.href = 'index_admin.html';
+                })
+                .catch(() => {
+                    authError.textContent = 'Неверный логин или пароль.';
+                });
+        });
+    };
+
+    setupAdminGate();
+
     const freshGrid = document.getElementById('home-fresh-grid');
     const demoLink = document.getElementById('hero-demo-link');
     const demoVideo = document.getElementById('hero-demo-video');

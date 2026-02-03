@@ -267,7 +267,9 @@
         fetch('/api/videos')
             .then((res) => res.ok ? res.json() : [])
             .then((videos) => {
-                const cleaned = videos.filter((item) => item.type !== 'interview');
+                const cleaned = videos.filter(
+                    (item) => item.type !== 'interview' && item.type !== 'background'
+                );
                 const current = cleaned.find((item) => String(item.id) === String(id));
                 const candidates = current
                     ? cleaned.filter((item) => String(item.id) !== String(id) && item.type === current.type)

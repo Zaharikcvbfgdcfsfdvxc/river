@@ -28,7 +28,7 @@
     </nav>
 </header>
 
-<main class="page admin-page">
+<main class="page admin-page admin-locked">
     <div class="admin-auth" id="admin-auth">
         <div class="admin-auth-card">
             <button class="admin-auth-close" type="button" id="auth-close" aria-label="Закрыть">×</button>
@@ -168,28 +168,29 @@
         const authError = document.getElementById('auth-error');
         const logoutButton = document.getElementById('logout-button');
         const authClose = document.getElementById('auth-close');
+        const adminMain = document.querySelector('.admin-page');
 
         const unlock = () => {
             authOverlay.classList.add('hidden');
             document.body.classList.remove('locked');
+            adminMain && adminMain.classList.remove('admin-locked');
         };
 
         const lock = () => {
             authOverlay.classList.remove('hidden');
             document.body.classList.add('locked');
+            adminMain && adminMain.classList.add('admin-locked');
         };
 
         if (authClose) {
             authClose.addEventListener('click', () => {
-                authOverlay.classList.add('hidden');
-                document.body.classList.remove('locked');
+                window.location.href = 'index.html';
             });
         }
 
         authOverlay.addEventListener('click', (event) => {
             if (event.target === authOverlay) {
-                authOverlay.classList.add('hidden');
-                document.body.classList.remove('locked');
+                window.location.href = 'index.html';
             }
         });
 
@@ -481,7 +482,9 @@
 
         logoutButton.addEventListener('click', () => {
             fetch('/api/logout', { method: 'POST' })
-                .finally(() => lock());
+                .finally(() => {
+                    window.location.href = 'index.html';
+                });
         });
     })();
 </script>
