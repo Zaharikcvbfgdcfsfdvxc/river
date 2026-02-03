@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,8 @@
 <body>
 <header class="top-bar">
      <a href="index.html" class="logo">
-        <img src="img/logo.png" alt="Логотип">
+        <img src="img/logo.png" alt="Логотип RiverDub">
+        <span>RiverDub</span>
     </a>
 
     <nav class="nav">
@@ -18,21 +19,126 @@
         <a href="index_contacts.html">Контакты</a>
     </nav>
 </header>
-<header class="top-bar2">
-    <div class="button-header-1">
 
-    </div>
-    <div class="button-header-2">
+<main class="page contacts-page">
+    <section class="contacts-hero">
+        <div class="contacts-intro">
+            <p class="eyebrow">Контакты</p>
+            <h1>Свяжитесь с командой RiverDub</h1>
+            <p>
+                Мы открыты к вопросам, сотрудничеству, кастингу и пресс-запросам. Обычно отвечаем
+                в течение 1-2 рабочих дней.
+            </p>
+            <div class="contact-badges">
+                <span class="badge">Ответ в 1-2 дня</span>
+                <span class="badge">Пн-Пт, 10:00-19:00</span>
+            </div>
+        </div>
+        <div class="contacts-cta">
+            <div class="info-card">
+                <h3>Быстрые контакты</h3>
+                <p class="info-lead">Выберите удобный канал связи.</p>
+                <div class="mini-links">
+                    <a href="mailto:hello@riverdub.studio">hello@riverdub.studio</a>
+                    <a href="https://t.me/RIVERDUB" target="_blank" rel="noopener">Telegram: @RIVERDUB</a>
+                    <a href="tel:+79991234567">+7 (999) 123-45-67</a>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    </div>
-    <div class="button-header-3">
+    <section class="contacts-grid">
+        <div class="contact-cards">
+            <article class="contact-card">
+                <h3>Общие вопросы</h3>
+                <a href="mailto:hello@riverdub.studio">hello@riverdub.studio</a>
+                <p class="contact-meta">Пишите по любым вопросам о проекте.</p>
+            </article>
+            <article class="contact-card">
+                <h3>Сотрудничество</h3>
+                <a href="mailto:partners@riverdub.studio">partners@riverdub.studio</a>
+                <p class="contact-meta">Коллаборации, бренды, партнерские интеграции.</p>
+            </article>
+            <article class="contact-card">
+                <h3>Кастинг и роли</h3>
+                <a href="mailto:casting@riverdub.studio">casting@riverdub.studio</a>
+                <p class="contact-meta">Голоса, актеры, заявки на участие.</p>
+            </article>
+            <article class="contact-card">
+                <h3>Пресса</h3>
+                <a href="mailto:press@riverdub.studio">press@riverdub.studio</a>
+                <p class="contact-meta">Интервью, материалы, медиа-запросы.</p>
+            </article>
+        </div>
 
-    </div>
-</header>
-<p class="text">Контакты</p>
-<p class="copirate">Все права принадлежат "AMAZON" и бла бла бла)</p>
-<p class="contact-link">
-    <a href="https://t.me/RIVERDUB" target="_blank" rel="noopener">Telegram: @RIVERDUB</a>
-</p>
+        <aside class="contact-sidebar">
+            <div class="info-card">
+                <h3>Студия</h3>
+                <p>Москва, ул. Примерная, 12</p>
+                <p class="contact-meta">Встречи по предварительной записи.</p>
+                <div class="info-row">
+                    <span>Часы работы</span>
+                    <span>Пн-Пт, 10:00-19:00</span>
+                </div>
+                <div class="info-row">
+                    <span>Телефон</span>
+                    <a href="tel:+79991234567">+7 (999) 123-45-67</a>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Соцсети</h3>
+                <p class="contact-meta">Следите за анонсами и новыми сериями.</p>
+                <div class="social-links">
+                    <a href="#" aria-label="YouTube">YouTube</a>
+                    <a href="#" aria-label="VK">VK</a>
+                    <a href="#" aria-label="Instagram">Instagram</a>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <section class="contact-form">
+        <div class="form-card">
+            <h2>Написать нам</h2>
+            <p>Опишите задачу, и мы свяжемся с вами.</p>
+            <form class="form">
+                <div class="form-row">
+                    <label>
+                        Имя
+                        <input type="text" name="name" placeholder="Ваше имя" required>
+                    </label>
+                    <label>
+                        Email
+                        <input type="email" name="email" placeholder="name@example.com" required>
+                    </label>
+                </div>
+                <label>
+                    Тема
+                    <input type="text" name="subject" placeholder="Например: коллаборация">
+                </label>
+                <label>
+                    Сообщение
+                    <textarea name="message" placeholder="Кратко опишите, что нужно"></textarea>
+                </label>
+                <button class="primary" type="submit">Отправить сообщение</button>
+                <p class="form-note">Нажимая на кнопку, вы соглашаетесь на обработку персональных данных.</p>
+            </form>
+        </div>
+
+        <div class="map-card">
+            <div class="map-placeholder">
+                <span>Карта студии (скоро)</span>
+            </div>
+            <div class="map-meta">
+                <p class="contact-meta">Можно приехать на встречу по предварительной договоренности.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <p>(c) RiverDub Studio, 2024. Все права защищены.</p>
+</footer>
 </body>
 </html>
