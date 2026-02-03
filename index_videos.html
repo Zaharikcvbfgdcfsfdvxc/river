@@ -13,6 +13,11 @@
         <span>RiverDub</span>
     </a>
 
+    <form class="search">
+        <input type="text" placeholder="Поиск видео" aria-label="Поиск">
+        <button type="submit">Найти</button>
+    </form>
+
     <nav class="nav">
         <a href="index.html">Главная</a>
         <a href="index_info.html">О нас</a>
@@ -121,7 +126,13 @@
             empty.style.display = 'none';
             items.forEach((item) => grid.appendChild(createCard(item)));
         };
-        fetch('/api/videos')
+        const queryParam = new URLSearchParams(window.location.search).get('q') || '';
+        const searchInput = document.querySelector('.search input');
+        if (searchInput && queryParam) {
+            searchInput.value = queryParam;
+        }
+        const queryString = queryParam ? `?q=${encodeURIComponent(queryParam)}` : '';
+        fetch(`/api/videos${queryString}`)
             .then((res) => res.ok ? res.json() : [])
             .then((videos) => {
                 const fresh = videos.slice(0, 6);
@@ -206,5 +217,6 @@
         });
     })();
 </script>
+<script src="script.js"></script>
 </body>
 </html>

@@ -7,8 +7,8 @@ const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const dataDir = path.join(__dirname, 'data');
-const uploadDir = path.join(__dirname, 'uploads');
+const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 const adminUser = process.env.ADMIN_USER || 'admin';
 const adminPass = process.env.ADMIN_PASS || 'riverdub';
 
@@ -114,13 +114,62 @@ app.get('/api/videos', (req, res) => {
         sql += ' WHERE type = ?';
         params.push(req.query.type);
     }
+    const query = String(req.query.q || req.query.query || '').trim();
     sql += ' ORDER BY created_at DESC';
     db.all(sql, params, (err, rows) => {
         if (err) {
             res.status(500).json({ error: 'db_error' });
             return;
         }
-        res.json(rows.map(normalizeRow));
+        if (!query) {
+            res.json(rows.map(normalizeRow));
+            return;
+        }
+        const terms = query
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+
+        const levenshtein = (a, b) => {
+            if (a === b) return 0;
+            const alen = a.length;
+            const blen = b.length;
+            if (alen === 0) return blen;
+            if (blen === 0) return alen;
+            const matrix = Array.from({ length: alen + 1 }, () => new Array(blen + 1));
+            for (let i = 0; i <= alen; i += 1) matrix[i][0] = i;
+            for (let j = 0; j <= blen; j += 1) matrix[0][j] = j;
+            for (let i = 1; i <= alen; i += 1) {
+                for (let j = 1; j <= blen; j += 1) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j - 1] + cost
+                    );
+                }
+            }
+            return matrix[alen][blen];
+        };
+
+        const fuzzyMatch = (term, hay) => {
+            if (hay.includes(term)) return true;
+            if (term.length <= 2) return false;
+            const words = hay.match(/[a-zа-я0-9]+/gi) || [];
+            const maxDistance = term.length <= 4 ? 1 : term.length <= 7 ? 2 : 3;
+            return words.some((word) => {
+                if (word.startsWith(term)) return true;
+                const dist = levenshtein(term, word);
+                const similarity = 1 - dist / Math.max(term.length, word.length);
+                return dist <= maxDistance || similarity >= 0.7;
+            });
+        };
+
+        const filtered = rows.filter((row) => {
+            const hay = `${row.title} ${row.description || ''}`.toLowerCase();
+            return terms.every((term) => fuzzyMatch(term, hay));
+        });
+        res.json(filtered.map(normalizeRow));
     });
 });
 
