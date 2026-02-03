@@ -300,6 +300,27 @@ app.put('/api/videos/:id', requireAuth, upload.fields([{ name: 'file', maxCount:
     });
 });
 
+app.delete('/api/videos/:id', requireAuth, (req, res) => {
+    db.get('SELECT * FROM videos WHERE id = ?', [req.params.id], (err, row) => {
+        if (err || !row) {
+            res.status(404).json({ error: 'not_found' });
+            return;
+        }
+        db.run('DELETE FROM videos WHERE id = ?', [req.params.id], (delErr) => {
+            if (delErr) {
+                res.status(500).json({ error: 'db_error' });
+                return;
+            }
+            const files = [row.filename, row.preview_filename].filter(Boolean);
+            files.forEach((file) => {
+                const target = path.join(uploadDir, file);
+                fs.unlink(target, () => {});
+            });
+            res.json({ ok: true });
+        });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`RiverDub server running on http://localhost:${PORT}`);
 });

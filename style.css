@@ -211,8 +211,9 @@ html, body {
 
 .video-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 260px));
     gap: 20px;
+    justify-content: start;
 }
 
 .video-card {
@@ -620,6 +621,27 @@ html, body {
     padding: 20px;
     display: grid;
     gap: 16px;
+}
+
+.logout-button {
+    font-size: 14px;
+    padding: 8px 16px;
+}
+
+.queue-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ghost.danger {
+    border-color: #5a1a1a;
+    color: #f19b9b;
+}
+
+.ghost.danger:hover {
+    border-color: #f04b4b;
+    color: #fff;
 }
 
 .admin-form {

@@ -22,6 +22,7 @@
         <a href="index.html">Главная</a>
         <a href="index_videos.html">Видео</a>
         <a href="index_player.html">Плеер</a>
+        <button class="ghost logout-button" type="button" id="logout-button">Выйти</button>
     </nav>
 </header>
 
@@ -92,6 +93,7 @@
                     Превью (обложка)
                     <input type="file" name="preview" accept="image/*">
                 </label>
+                <p class="admin-note">Если превью не выбрано, оно создастся автоматически из видео.</p>
                 <label>
                     Порог кнопки «Следующая серия»
                     <input type="range" name="threshold" min="60" max="99" value="90">
@@ -124,6 +126,7 @@
         const authOverlay = document.getElementById('admin-auth');
         const loginForm = document.getElementById('admin-login');
         const authError = document.getElementById('auth-error');
+        const logoutButton = document.getElementById('logout-button');
 
         const unlock = () => {
             authOverlay.classList.add('hidden');
@@ -168,6 +171,7 @@
         const cancelEditButton = document.getElementById('cancel-edit');
         const uploadError = document.getElementById('upload-error');
         const fileInput = form.querySelector('input[name="file"]');
+        const previewInput = form.querySelector('input[name="preview"]');
         const queueList = document.getElementById('queue-list');
         const thresholdValue = document.getElementById('threshold-value');
         const storedCount = document.getElementById('stored-count');
@@ -196,7 +200,10 @@
                         <p class="player-meta">${typeMap[item.type] || 'Видео'} • Порог ${item.threshold}%</p>
                         <p class="contact-meta">${item.description || 'Без описания'}</p>
                     </div>
-                    <button class="ghost" data-edit="${item.id}" type="button">Редактировать</button>
+                    <div class="queue-actions">
+                        <button class="ghost" data-edit="${item.id}" type="button">Редактировать</button>
+                        <button class="ghost danger" data-delete="${item.id}" type="button">Удалить</button>
+                    </div>
                 `;
                 queueList.appendChild(card);
             });
@@ -239,6 +246,42 @@
 
         cancelEditButton.addEventListener('click', resetForm);
 
+        const generatePreview = (file) => {
+            if (!file || previewInput.files.length) return;
+            const url = URL.createObjectURL(file);
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.muted = true;
+            video.src = url;
+            video.addEventListener('loadedmetadata', () => {
+                const targetTime = Math.min(2, video.duration * 0.1);
+                video.currentTime = Number.isFinite(targetTime) ? targetTime : 0;
+            });
+            video.addEventListener('seeked', () => {
+                const canvas = document.createElement('canvas');
+                const width = 640;
+                const ratio = video.videoWidth ? video.videoHeight / video.videoWidth : 0.5625;
+                canvas.width = width;
+                canvas.height = Math.round(width * ratio);
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    const previewFile = new File([blob], 'preview.jpg', { type: 'image/jpeg' });
+                    const dt = new DataTransfer();
+                    dt.items.add(previewFile);
+                    previewInput.files = dt.files;
+                    URL.revokeObjectURL(url);
+                }, 'image/jpeg', 0.85);
+            });
+        };
+
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            generatePreview(file);
+        });
+
         form.addEventListener('submit', (event) => {
             event.preventDefault();
             const data = new FormData(form);
@@ -278,6 +321,24 @@
                     if (!item) return;
                     setEditMode(item);
                 });
+        });
+
+        queueList.addEventListener('click', (event) => {
+            const deleteButton = event.target.closest('[data-delete]');
+            if (!deleteButton) return;
+            const id = deleteButton.dataset.delete;
+            if (!confirm('Удалить видео?')) return;
+            fetch(`/api/videos/${id}`, { method: 'DELETE' })
+                .then((res) => res.ok ? res.json() : null)
+                .then((result) => {
+                    if (!result) return;
+                    loadList();
+                });
+        });
+
+        logoutButton.addEventListener('click', () => {
+            fetch('/api/logout', { method: 'POST' })
+                .finally(() => lock());
         });
     })();
 </script>
