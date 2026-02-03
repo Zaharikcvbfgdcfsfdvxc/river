@@ -1,8 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RiverDub — авторская озвучка и дубляж для аудитории. Релизы, демо и библиотека выпусков.">
+    <meta name="keywords" content="RiverDub, озвучка, дубляж, студия озвучки, фан-даб, авторская озвучка, русский дубляж, voice over">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="RiverDub — студия озвучки">
+    <meta property="og:description" content="Авторская озвучка и дубляж для аудитории. Релизы, демо и библиотека выпусков.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="img/logo.png">
     <title>RiverDub</title>
     <link rel="icon" type="image/png" href="img/logo.png">
     <link rel="stylesheet" href="style.css">
@@ -43,21 +50,23 @@
             </div>
         </div>
         <div class="hero-video">
-            <div class="video-frame">
-                <span class="video-label">Шоурил студии</span>
-            </div>
+            <a class="video-frame hero-demo-link" id="hero-demo-link" href="index_videos.html">
+                <video class="hero-demo-video" id="hero-demo-video" autoplay muted playsinline loop></video>
+                <span class="video-label hero-demo-label" id="hero-demo-label">Шоурил студии</span>
+            </a>
             <div class="video-info">
-                <h2>Демо-ролик RiverDub</h2>
-                <p>Лучшие фрагменты нашей озвучки</p>
+                <h2 id="hero-demo-title">Шоурил студии</h2>
+                <p id="hero-demo-subtitle">Самое свежее демо RiverDub</p>
             </div>
         </div>
     </section>
 
     <section class="section">
         <div class="section-header">
-            <h2>Свежие видео</h2>
-            <a href="index_videos.html#videos">Смотреть все</a>
+            <h2>Видео RiverDub</h2>
+            <a href="index_videos.html">Смотреть все видео</a>
         </div>
+        <p class="section-sub">Новые релизы и выпуски нашей озвучки</p>
         <div class="video-grid" id="home-fresh-grid"></div>
         <p class="empty-state" id="home-fresh-empty">Пока нет загруженных видео.</p>
     </section>
@@ -71,3 +80,6 @@
 <script src="script.js"></script>
 </body>
 </html>
+
+
+

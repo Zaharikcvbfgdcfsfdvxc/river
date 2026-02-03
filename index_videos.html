@@ -1,8 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RiverDub — авторская озвучка и дубляж для аудитории. Релизы, демо и библиотека выпусков.">
+    <meta name="keywords" content="RiverDub, озвучка, дубляж, студия озвучки, фан-даб, авторская озвучка, русский дубляж, voice over">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="RiverDub — студия озвучки">
+    <meta property="og:description" content="Авторская озвучка и дубляж для аудитории. Релизы, демо и библиотека выпусков.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="img/logo.png">
     <title>RiverDub</title>
     <link rel="icon" type="image/png" href="img/logo.png">
     <link rel="stylesheet" href="style.css">
@@ -31,14 +38,8 @@
         <div>
             <p class="eyebrow">Библиотека</p>
             <h1>Все работы RiverDub</h1>
-            <p class="videos-lead">Подборка наших релизов озвучки и дубляжа для аудитории: видео и демо-ролики.</p>
+            <p class="videos-lead">Подборка наших релизов озвучки и дубляжа для аудитории: видео.</p>
         </div>
-    </section>
-
-    <section class="filter-bar">
-        <a class="chip" href="#all">Все</a>
-        <a class="chip" href="#videos">Видео</a>
-        <a class="chip" href="#demo">Демо-ролики</a>
     </section>
 
     <div class="season-filter">
@@ -56,15 +57,6 @@
         <div class="video-grid" id="videos-grid"></div>
         <p class="empty-state" id="videos-empty">Пока нет видео.</p>
     </section>
-
-    <section class="section" id="demo">
-        <div class="section-header">
-            <h2>Демо-ролики</h2>
-            <a href="#all">Наверх</a>
-        </div>
-        <div class="video-grid" id="demo-grid"></div>
-        <p class="empty-state" id="demo-empty">Пока нет демо-роликов.</p>
-    </section>
 </main>
 
 <footer class="footer">
@@ -73,8 +65,7 @@
 <script>
     (function () {
         const typeLabels = {
-            video: 'Видео',
-            demo: 'Демо-ролик'
+            video: 'Видео'
         };
         const formatDate = (value) => {
             if (!value) return '';
@@ -126,7 +117,7 @@
         fetch(`/api/videos${queryString}`)
             .then((res) => res.ok ? res.json() : [])
             .then((videos) => {
-                const cleaned = videos.filter((item) => item.type !== 'interview');
+                const cleaned = videos.filter((item) => item.type === 'video');
                 const seasons = Array.from(
                     new Set(
                         cleaned
@@ -155,10 +146,7 @@
 
                 const render = () => {
                     const filtered = applySeasonFilter(cleaned);
-                    const regular = filtered.filter((item) => item.type !== 'demo');
-                    const demo = filtered.filter((item) => item.type === 'demo');
-                    fillSection(regular, 'videos-grid', 'videos-empty');
-                    fillSection(demo, 'demo-grid', 'demo-empty');
+                    fillSection(filtered, 'videos-grid', 'videos-empty');
                 };
 
                 render();
@@ -178,78 +166,10 @@
                 }
             });
 
-        const chips = Array.from(document.querySelectorAll('.filter-bar .chip'));
-        const chipById = new Map(
-            chips.map((chip) => [chip.getAttribute('href')?.replace('#', ''), chip])
-        );
-        const sections = Array.from(document.querySelectorAll('main .section'))
-            .filter((section) => section.id && chipById.has(section.id));
-        const setActive = (id) => {
-            chips.forEach((chip) => chip.classList.remove('active'));
-            const activeChip = chipById.get(id) || chipById.get('all');
-            if (activeChip) {
-                activeChip.classList.add('active');
-            }
-        };
-
-        const isNearTop = () => window.scrollY < 200;
-
-        const onScroll = () => {
-            if (isNearTop()) {
-                setActive('all');
-                return;
-            }
-        };
-
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver(
-                (entries) => {
-                    const visible = entries
-                        .filter((entry) => entry.isIntersecting)
-                        .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-                    if (visible[0]) {
-                        setActive(visible[0].target.id);
-                    }
-                },
-                { rootMargin: '-20% 0px -60% 0px', threshold: [0.1, 0.3, 0.6] }
-            );
-            sections.forEach((section) => observer.observe(section));
-            window.addEventListener('scroll', onScroll, { passive: true });
-            onScroll();
-        } else {
-            const legacyScroll = () => {
-                if (isNearTop()) {
-                    setActive('all');
-                    return;
-                }
-                const current = sections.find((section) => {
-                    const rect = section.getBoundingClientRect();
-                    return rect.top <= window.innerHeight * 0.4 && rect.bottom > 0;
-                });
-                if (current) {
-                    setActive(current.id);
-                }
-            };
-            window.addEventListener('scroll', onScroll, { passive: true });
-            window.addEventListener('scroll', legacyScroll, { passive: true });
-            onScroll();
-            legacyScroll();
-        }
-
-        chips.forEach((chip) => {
-            chip.addEventListener('click', (event) => {
-                const id = chip.getAttribute('href')?.replace('#', '');
-                if (!id) return;
-                const target = document.getElementById(id);
-                if (target) {
-                    event.preventDefault();
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-                setActive(id);
-            });
-        });
-    })();
+        })();
 </script>
 <script src="script.js"></script>
 </body>
 </html>
+
+

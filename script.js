@@ -11,7 +11,12 @@
     }
 
     const freshGrid = document.getElementById('home-fresh-grid');
-    if (!freshGrid) return;
+    const demoLink = document.getElementById('hero-demo-link');
+    const demoVideo = document.getElementById('hero-demo-video');
+    const demoLabel = document.getElementById('hero-demo-label');
+    const demoTitle = document.getElementById('hero-demo-title');
+    const demoSubtitle = document.getElementById('hero-demo-subtitle');
+    if (!freshGrid && !demoLink) return;
 
     const typeLabels = {
         video: 'Видео',
@@ -49,17 +54,51 @@
         .then((res) => res.ok ? res.json() : [])
         .then((videos) => {
             const cleaned = videos.filter((item) => item.type !== 'interview');
-            const fresh = cleaned.slice(0, 4);
-
-            const freshEmpty = document.getElementById('home-fresh-empty');
 
             if (freshGrid) {
+                const fresh = cleaned.filter((item) => item.type === 'video').slice(0, 4);
+                const freshEmpty = document.getElementById('home-fresh-empty');
                 freshGrid.innerHTML = '';
                 if (fresh.length) {
                     freshEmpty && (freshEmpty.style.display = 'none');
                     fresh.forEach((item) => freshGrid.appendChild(createCard(item)));
                 } else {
                     freshEmpty && (freshEmpty.style.display = 'block');
+                }
+            }
+
+            if (demoLink) {
+                const demos = cleaned
+                    .filter((item) => item.type === 'demo')
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                const latest = demos[0];
+                if (latest) {
+                    demoLink.href = `index_player.html?id=${latest.id}`;
+                    if (demoVideo) {
+                        demoVideo.src = latest.url;
+                        if (latest.preview_url) {
+                            demoVideo.poster = latest.preview_url;
+                        }
+                        demoVideo.load();
+                        const playAttempt = demoVideo.play();
+                        if (playAttempt && typeof playAttempt.catch === 'function') {
+                            playAttempt.catch(() => {});
+                        }
+                    }
+                    demoLabel && (demoLabel.textContent = 'Шоурил студии');
+                    demoTitle && (demoTitle.textContent = latest.title);
+                    demoSubtitle && (demoSubtitle.textContent = 'Самое свежее демо RiverDub');
+                } else {
+                    demoLink.href = 'index_videos.html';
+                    if (demoVideo) {
+                        demoVideo.pause();
+                        demoVideo.removeAttribute('src');
+                        demoVideo.load();
+                        demoVideo.poster = '';
+                    }
+                    demoLabel && (demoLabel.textContent = 'Шоурил студии');
+                    demoTitle && (demoTitle.textContent = 'Демо пока нет');
+                    demoSubtitle && (demoSubtitle.textContent = 'Следите за обновлениями');
                 }
             }
         });
