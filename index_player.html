@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RiverDub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top-bar">
+     <a href="index.html" class="logo">
+        <img src="img/logo.png" alt="Логотип RiverDub">
+        <span>RiverDub</span>
+    </a>
+
+    <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="index_info.html">О нас</a>
+        <a href="index_contacts.html">Контакты</a>
+    </nav>
+</header>
+
+<main class="page player-page">
+    <section class="player-layout">
+        <div class="player-main">
+            <div class="player-video-wrap">
+                <video class="player-video" controls></video>
+                <a class="next-floating" href="#" aria-label="Следующая серия">Следующая серия</a>
+            </div>
+            <div class="player-info">
+                <div>
+                    <p class="player-kicker" id="player-kicker">Видео</p>
+                    <h1 id="player-title">Выберите видео</h1>
+                    <p class="player-meta" id="player-meta"></p>
+                </div>
+            </div>
+            <div class="player-desc">
+                <p id="player-description"></p>
+            </div>
+        </div>
+
+        <aside class="player-side">
+            <div class="next-episode" id="next-episode">
+                <p class="player-kicker">Следующая серия</p>
+                <div class="next-card">
+                    <div class="next-thumb" id="next-thumb">—</div>
+                    <div>
+                        <h3 id="next-title">Пока нет</h3>
+                        <p class="player-meta" id="next-meta"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="other-videos">
+                <p class="player-kicker">Другие видео</p>
+                <div class="other-list" id="other-list"></div>
+            </div>
+        </aside>
+    </section>
+</main>
+
+<footer class="footer">
+    <p>(c) RiverDub Studio, 2024. <a href="index_admin.html">Все права защищены.</a></p>
+</footer>
+
+<script>
+    (function () {
+        const video = document.querySelector('.player-video');
+        const nextButton = document.querySelector('.next-floating');
+        const titleEl = document.getElementById('player-title');
+        const kickerEl = document.getElementById('player-kicker');
+        const metaEl = document.getElementById('player-meta');
+        const descEl = document.getElementById('player-description');
+        const nextThumb = document.getElementById('next-thumb');
+        const nextTitle = document.getElementById('next-title');
+        const nextMeta = document.getElementById('next-meta');
+        const otherList = document.getElementById('other-list');
+
+        const typeLabels = {
+            series: 'Серия',
+            interview: 'Интервью',
+            teaser: 'Тизер'
+        };
+
+        const formatDate = (value) => {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleDateString('ru-RU');
+        };
+
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        if (!id) {
+            titleEl.textContent = 'Выберите видео из библиотеки';
+            return;
+        }
+
+        fetch(`/api/videos/${id}`)
+            .then((res) => res.ok ? res.json() : null)
+            .then((item) => {
+                if (!item) {
+                    titleEl.textContent = 'Видео не найдено';
+                    return;
+                }
+                titleEl.textContent = item.title;
+                kickerEl.textContent = typeLabels[item.type] || 'Видео';
+                metaEl.textContent = `${typeLabels[item.type] || 'Видео'} • ${formatDate(item.created_at)}`;
+                descEl.textContent = item.description || '';
+                video.src = item.url;
+                if (item.preview_url) {
+                    video.poster = item.preview_url;
+                }
+                video.load();
+
+                const threshold = Math.min(Math.max(Number(item.threshold || 90), 60), 99);
+                const toggleNext = () => {
+                    if (!isFinite(video.duration) || video.duration <= 0) {
+                        return;
+                    }
+                    const progress = video.currentTime / video.duration;
+                    nextButton.classList.toggle('visible', progress >= threshold / 100);
+                };
+                video.addEventListener('timeupdate', toggleNext);
+                video.addEventListener('ended', () => nextButton.classList.add('visible'));
+            });
+
+        fetch('/api/videos')
+            .then((res) => res.ok ? res.json() : [])
+            .then((videos) => {
+                const currentIndex = videos.findIndex((item) => String(item.id) === String(id));
+                const nextItem = currentIndex >= 0 ? videos[currentIndex + 1] : null;
+                if (nextItem) {
+                    nextThumb.textContent = typeLabels[nextItem.type] || 'Видео';
+                    nextTitle.textContent = nextItem.title;
+                    nextMeta.textContent = `${typeLabels[nextItem.type] || 'Видео'} • ${formatDate(nextItem.created_at)}`;
+                    nextButton.href = `index_player.html?id=${nextItem.id}`;
+                    nextButton.classList.remove('disabled');
+                } else {
+                    nextButton.href = '#';
+                    nextButton.classList.add('disabled');
+                }
+
+                const others = videos.filter((item) => String(item.id) !== String(id)).slice(0, 3);
+                otherList.innerHTML = '';
+                if (!others.length) {
+                    otherList.innerHTML = '<p class="contact-meta">Пока нет других видео.</p>';
+                    return;
+                }
+                others.forEach((item) => {
+                    const card = document.createElement('article');
+                    card.className = 'other-card';
+                    const thumbStyle = item.preview_url
+                        ? `style="background-image: url('${item.preview_url}'); background-size: cover; background-position: center;"`
+                        : '';
+                    card.innerHTML = `
+                        <div class="other-thumb" ${thumbStyle}>${typeLabels[item.type] || 'Видео'}</div>
+                        <div>
+                            <h4>${item.title}</h4>
+                            <p class="player-meta">${formatDate(item.created_at)}</p>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        window.location.href = `index_player.html?id=${item.id}`;
+                    });
+                    otherList.appendChild(card);
+                });
+            });
+    })();
+</script>
+</body>
+</html>

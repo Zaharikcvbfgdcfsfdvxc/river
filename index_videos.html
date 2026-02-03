@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RiverDub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top-bar">
+     <a href="index.html" class="logo">
+        <img src="img/logo.png" alt="Логотип RiverDub">
+        <span>RiverDub</span>
+    </a>
+
+    <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="index_info.html">О нас</a>
+        <a href="index_contacts.html">Контакты</a>
+    </nav>
+</header>
+
+<main class="page videos-page">
+    <section class="videos-hero" id="all">
+        <div>
+            <p class="eyebrow">Библиотека</p>
+            <h1>Все видео RiverDub</h1>
+            <p class="videos-lead">
+                Полная подборка серий, интервью и тизеров. Обновляем каждую неделю.
+            </p>
+        </div>
+    </section>
+
+    <section class="filter-bar">
+        <a class="chip" href="#all">Все</a>
+        <a class="chip" href="#series">Серии</a>
+        <a class="chip" href="#interviews">Интервью</a>
+        <a class="chip" href="#teasers">Тизеры</a>
+    </section>
+
+    <section class="section" id="fresh">
+        <div class="section-header">
+            <h2>Свежие видео</h2>
+            <a href="index.html">На главную</a>
+        </div>
+        <div class="video-grid" id="fresh-grid"></div>
+        <p class="empty-state" id="fresh-empty">Пока нет видео.</p>
+    </section>
+
+    <section class="section" id="series">
+        <div class="section-header">
+            <h2>Серии</h2>
+            <a href="#all">Наверх</a>
+        </div>
+        <div class="video-grid" id="series-grid"></div>
+        <p class="empty-state" id="series-empty">Пока нет серий.</p>
+    </section>
+
+    <section class="section" id="interviews">
+        <div class="section-header">
+            <h2>Интервью</h2>
+            <a href="#all">Наверх</a>
+        </div>
+        <div class="video-grid" id="interviews-grid"></div>
+        <p class="empty-state" id="interviews-empty">Пока нет интервью.</p>
+    </section>
+
+    <section class="section" id="teasers">
+        <div class="section-header">
+            <h2>Тизеры</h2>
+            <a href="#all">Наверх</a>
+        </div>
+        <div class="video-grid" id="teasers-grid"></div>
+        <p class="empty-state" id="teasers-empty">Пока нет тизеров.</p>
+    </section>
+</main>
+
+<footer class="footer">
+    <p>(c) RiverDub Studio, 2024. <a href="index_admin.html">Все права защищены.</a></p>
+</footer>
+<script>
+    (function () {
+        const typeLabels = {
+            series: 'Серия',
+            interview: 'Интервью',
+            teaser: 'Тизер'
+        };
+        const formatDate = (value) => {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleDateString('ru-RU');
+        };
+        const createCard = (item) => {
+            const article = document.createElement('article');
+            article.className = 'video-card';
+            const link = document.createElement('a');
+            link.className = 'video-link';
+            link.href = `index_player.html?id=${item.id}`;
+            const thumbStyle = item.preview_url
+                ? `style="background-image: url('${item.preview_url}'); background-size: cover; background-position: center;"`
+                : '';
+            link.innerHTML = `
+                <div class="thumb" ${thumbStyle}>${typeLabels[item.type] || 'Видео'}</div>
+                <div class="card-body">
+                    <h3>${item.title}</h3>
+                    <p>${typeLabels[item.type] || 'Видео'} • ${formatDate(item.created_at)}</p>
+                </div>
+            `;
+            article.appendChild(link);
+            return article;
+        };
+        const fillSection = (items, gridId, emptyId) => {
+            const grid = document.getElementById(gridId);
+            const empty = document.getElementById(emptyId);
+            grid.innerHTML = '';
+            if (!items.length) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            items.forEach((item) => grid.appendChild(createCard(item)));
+        };
+        fetch('/api/videos')
+            .then((res) => res.ok ? res.json() : [])
+            .then((videos) => {
+                const fresh = videos.slice(0, 6);
+                const series = videos.filter((item) => item.type === 'series');
+                const interviews = videos.filter((item) => item.type === 'interview');
+                const teasers = videos.filter((item) => item.type === 'teaser');
+                fillSection(fresh, 'fresh-grid', 'fresh-empty');
+                fillSection(series, 'series-grid', 'series-empty');
+                fillSection(interviews, 'interviews-grid', 'interviews-empty');
+                fillSection(teasers, 'teasers-grid', 'teasers-empty');
+            });
+
+        const chips = Array.from(document.querySelectorAll('.filter-bar .chip'));
+        const chipById = new Map(
+            chips.map((chip) => [chip.getAttribute('href')?.replace('#', ''), chip])
+        );
+        const sections = Array.from(document.querySelectorAll('main .section'))
+            .filter((section) => section.id && chipById.has(section.id));
+        const setActive = (id) => {
+            chips.forEach((chip) => chip.classList.remove('active'));
+            const activeChip = chipById.get(id) || chipById.get('all');
+            if (activeChip) {
+                activeChip.classList.add('active');
+            }
+        };
+
+        const isNearTop = () => window.scrollY < 200;
+
+        const onScroll = () => {
+            if (isNearTop()) {
+                setActive('all');
+                return;
+            }
+        };
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    const visible = entries
+                        .filter((entry) => entry.isIntersecting)
+                        .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+                    if (visible[0]) {
+                        setActive(visible[0].target.id);
+                    }
+                },
+                { rootMargin: '-20% 0px -60% 0px', threshold: [0.1, 0.3, 0.6] }
+            );
+            sections.forEach((section) => observer.observe(section));
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+        } else {
+            const legacyScroll = () => {
+                if (isNearTop()) {
+                    setActive('all');
+                    return;
+                }
+                const current = sections.find((section) => {
+                    const rect = section.getBoundingClientRect();
+                    return rect.top <= window.innerHeight * 0.4 && rect.bottom > 0;
+                });
+                if (current) {
+                    setActive(current.id);
+                }
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            window.addEventListener('scroll', legacyScroll, { passive: true });
+            onScroll();
+            legacyScroll();
+        }
+
+        chips.forEach((chip) => {
+            chip.addEventListener('click', (event) => {
+                const id = chip.getAttribute('href')?.replace('#', '');
+                if (!id) return;
+                const target = document.getElementById(id);
+                if (target) {
+                    event.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                setActive(id);
+            });
+        });
+    })();
+</script>
+</body>
+</html>

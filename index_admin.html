@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RiverDub Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top-bar">
+     <a href="index.html" class="logo">
+        <img src="img/logo.png" alt="Логотип RiverDub">
+        <span>RiverDub</span>
+    </a>
+
+    <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="index_videos.html">Видео</a>
+        <a href="index_player.html">Плеер</a>
+    </nav>
+</header>
+
+<main class="page admin-page">
+    <div class="admin-auth" id="admin-auth">
+        <div class="admin-auth-card">
+            <p class="eyebrow">Доступ</p>
+            <h2>Вход в админ-панель</h2>
+            <p class="admin-lead">Введите логин и пароль.</p>
+            <form class="admin-form" id="admin-login">
+                <label>
+                    Логин
+                    <input type="text" name="login" autocomplete="username" required>
+                </label>
+                <label>
+                    Пароль
+                    <input type="password" name="password" autocomplete="current-password" required>
+                </label>
+                <button class="primary" type="submit">Войти</button>
+                <p class="admin-note" id="auth-error"></p>
+            </form>
+        </div>
+    </div>
+    <section class="admin-hero">
+        <div>
+            <p class="eyebrow">Админ</p>
+            <h1>Загрузка видео</h1>
+            <p class="admin-lead">Настройте файл, название, тип видео и момент появления кнопки «Следующая серия».</p>
+        </div>
+        <div class="admin-stats">
+            <div class="stat-card">
+                <span class="stat-value" id="stored-count">0</span>
+                <span class="stat-label">в очереди</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="next-threshold">90%</span>
+                <span class="stat-label">порог кнопки</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="admin-grid">
+        <div class="admin-card">
+            <h2>Новый ролик</h2>
+            <form class="admin-form" id="upload-form">
+                <input type="hidden" name="video_id" id="video-id">
+                <label>
+                    Название
+                    <input type="text" name="title" placeholder="Например: Линия горизонта" required>
+                </label>
+                <label>
+                    Тип видео
+                    <select name="type" required>
+                        <option value="series">Серия</option>
+                        <option value="interview">Интервью</option>
+                        <option value="teaser">Тизер</option>
+                    </select>
+                </label>
+                <label>
+                    Описание
+                    <textarea name="description" placeholder="Короткое описание"></textarea>
+                </label>
+                <label>
+                    Файл видео
+                    <input type="file" name="file" accept="video/*">
+                </label>
+                <label>
+                    Превью (обложка)
+                    <input type="file" name="preview" accept="image/*">
+                </label>
+                <label>
+                    Порог кнопки «Следующая серия»
+                    <input type="range" name="threshold" min="60" max="99" value="90">
+                    <span class="range-value" id="threshold-value">90%</span>
+                </label>
+                <div class="admin-actions">
+                    <button class="primary" type="submit" id="submit-button">Добавить видео</button>
+                    <button class="ghost" type="button" id="cancel-edit">Отмена</button>
+                </div>
+                <p class="admin-note">Видео сохраняются на сервере и появляются в библиотеке.</p>
+                <p class="admin-note" id="upload-error"></p>
+            </form>
+        </div>
+
+        <aside class="admin-card">
+            <h2>Очередь загрузки</h2>
+            <div class="queue-list" id="queue-list">
+                <p class="contact-meta">Пока пусто.</p>
+            </div>
+        </aside>
+    </section>
+</main>
+
+<footer class="footer">
+    <p>(c) RiverDub Studio, 2024. Все права защищены.</p>
+</footer>
+
+<script>
+    (function () {
+        const authOverlay = document.getElementById('admin-auth');
+        const loginForm = document.getElementById('admin-login');
+        const authError = document.getElementById('auth-error');
+
+        const unlock = () => {
+            authOverlay.classList.add('hidden');
+            document.body.classList.remove('locked');
+        };
+
+        const lock = () => {
+            authOverlay.classList.remove('hidden');
+            document.body.classList.add('locked');
+        };
+
+        fetch('/api/me')
+            .then((res) => (res.ok ? unlock() : lock()))
+            .catch(lock);
+
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            authError.textContent = '';
+            const data = new FormData(loginForm);
+            const login = String(data.get('login') || '').trim();
+            const password = String(data.get('password') || '').trim();
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ login, password })
+            })
+                .then((res) => {
+                    if (!res.ok) {
+                        throw new Error('invalid');
+                    }
+                    unlock();
+                    loginForm.reset();
+                })
+                .catch(() => {
+                    authError.textContent = 'Неверный логин или пароль.';
+                });
+        });
+
+        const form = document.getElementById('upload-form');
+        const videoIdInput = document.getElementById('video-id');
+        const submitButton = document.getElementById('submit-button');
+        const cancelEditButton = document.getElementById('cancel-edit');
+        const uploadError = document.getElementById('upload-error');
+        const fileInput = form.querySelector('input[name="file"]');
+        const queueList = document.getElementById('queue-list');
+        const thresholdValue = document.getElementById('threshold-value');
+        const storedCount = document.getElementById('stored-count');
+        const nextThreshold = document.getElementById('next-threshold');
+        const thresholdInput = form.querySelector('input[name="threshold"]');
+
+        const typeMap = {
+            series: 'Серия',
+            interview: 'Интервью',
+            teaser: 'Тизер'
+        };
+
+        const renderQueue = (items) => {
+            storedCount.textContent = items.length;
+            if (!items.length) {
+                queueList.innerHTML = '<p class="contact-meta">Пока пусто.</p>';
+                return;
+            }
+            queueList.innerHTML = '';
+            items.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'queue-card';
+                card.innerHTML = `
+                    <div>
+                        <h4>${item.title}</h4>
+                        <p class="player-meta">${typeMap[item.type] || 'Видео'} • Порог ${item.threshold}%</p>
+                        <p class="contact-meta">${item.description || 'Без описания'}</p>
+                    </div>
+                    <button class="ghost" data-edit="${item.id}" type="button">Редактировать</button>
+                `;
+                queueList.appendChild(card);
+            });
+        };
+
+        const updateThresholdLabel = () => {
+            thresholdValue.textContent = `${thresholdInput.value}%`;
+            nextThreshold.textContent = `${thresholdInput.value}%`;
+        };
+
+        thresholdInput.addEventListener('input', updateThresholdLabel);
+        updateThresholdLabel();
+        fileInput.required = true;
+        const loadList = () => {
+            fetch('/api/videos')
+                .then((res) => res.ok ? res.json() : [])
+                .then((items) => renderQueue(items));
+        };
+        loadList();
+
+        const setEditMode = (item) => {
+            videoIdInput.value = item.id;
+            form.title.value = item.title;
+            form.type.value = item.type;
+            form.description.value = item.description || '';
+            thresholdInput.value = item.threshold || 90;
+            updateThresholdLabel();
+            submitButton.textContent = 'Сохранить изменения';
+            fileInput.required = false;
+        };
+
+        const resetForm = () => {
+            form.reset();
+            videoIdInput.value = '';
+            submitButton.textContent = 'Добавить видео';
+            thresholdInput.value = 90;
+            updateThresholdLabel();
+            fileInput.required = true;
+        };
+
+        cancelEditButton.addEventListener('click', resetForm);
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const data = new FormData(form);
+            const id = videoIdInput.value;
+            const url = id ? `/api/videos/${id}` : '/api/videos';
+            const method = id ? 'PUT' : 'POST';
+            if (id) {
+                data.delete('file');
+                const fileInput = form.querySelector('input[name="file"]');
+                if (fileInput && fileInput.files.length) {
+                    data.set('file', fileInput.files[0]);
+                }
+            }
+            fetch(url, { method, body: data })
+                .then((res) => res.ok ? res.json() : null)
+                .then((result) => {
+                    if (!result) {
+                        uploadError.textContent = 'Не удалось загрузить видео.';
+                        return;
+                    }
+                    uploadError.textContent = '';
+                    resetForm();
+                    loadList();
+                })
+                .catch(() => {
+                    uploadError.textContent = 'Ошибка загрузки. Проверьте сервер.';
+                });
+        });
+
+        queueList.addEventListener('click', (event) => {
+            const editButton = event.target.closest('[data-edit]');
+            if (!editButton) return;
+            const id = editButton.dataset.edit;
+            fetch(`/api/videos/${id}`)
+                .then((res) => res.ok ? res.json() : null)
+                .then((item) => {
+                    if (!item) return;
+                    setEditMode(item);
+                });
+        });
+    })();
+</script>
+</body>
+</html>
