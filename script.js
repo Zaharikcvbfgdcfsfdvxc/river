@@ -11,13 +11,11 @@
     }
 
     const freshGrid = document.getElementById('home-fresh-grid');
-    const interviewsGrid = document.getElementById('home-interviews-grid');
-    if (!freshGrid && !interviewsGrid) return;
+    if (!freshGrid) return;
 
     const typeLabels = {
-        series: 'Серия',
-        interview: 'Интервью',
-        teaser: 'Тизер'
+        video: 'Видео',
+        demo: 'Демо-ролик'
     };
 
     const formatDate = (value) => {
@@ -50,11 +48,10 @@
     fetch('/api/videos')
         .then((res) => res.ok ? res.json() : [])
         .then((videos) => {
-            const fresh = videos.slice(0, 4);
-            const interviews = videos.filter((item) => item.type === 'interview').slice(0, 3);
+            const cleaned = videos.filter((item) => item.type !== 'interview');
+            const fresh = cleaned.slice(0, 4);
 
             const freshEmpty = document.getElementById('home-fresh-empty');
-            const interviewsEmpty = document.getElementById('home-interviews-empty');
 
             if (freshGrid) {
                 freshGrid.innerHTML = '';
@@ -63,16 +60,6 @@
                     fresh.forEach((item) => freshGrid.appendChild(createCard(item)));
                 } else {
                     freshEmpty && (freshEmpty.style.display = 'block');
-                }
-            }
-
-            if (interviewsGrid) {
-                interviewsGrid.innerHTML = '';
-                if (interviews.length) {
-                    interviewsEmpty && (interviewsEmpty.style.display = 'none');
-                    interviews.forEach((item) => interviewsGrid.appendChild(createCard(item)));
-                } else {
-                    interviewsEmpty && (interviewsEmpty.style.display = 'block');
                 }
             }
         });

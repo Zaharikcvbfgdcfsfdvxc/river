@@ -31,51 +31,39 @@
         <div>
             <p class="eyebrow">Библиотека</p>
             <h1>Все работы RiverDub</h1>
-            <p class="videos-lead">Подборка наших релизов озвучки и дубляжа для аудитории: проекты, интервью, тизеры и демо-ролики.</p>
+            <p class="videos-lead">Подборка наших релизов озвучки и дубляжа для аудитории: видео и демо-ролики.</p>
         </div>
     </section>
 
     <section class="filter-bar">
         <a class="chip" href="#all">Все</a>
-        <a class="chip" href="#series">Серии</a>
-        <a class="chip" href="#interviews">Интервью</a>
-        <a class="chip" href="#teasers">Тизеры</a>
+        <a class="chip" href="#videos">Видео</a>
+        <a class="chip" href="#demo">Демо-ролики</a>
     </section>
 
-    <section class="section" id="fresh">
-        <div class="section-header">
-            <h2>Свежие видео</h2>
-            <a href="index.html">На главную</a>
-        </div>
-        <div class="video-grid" id="fresh-grid"></div>
-        <p class="empty-state" id="fresh-empty">Пока нет видео.</p>
-    </section>
+    <div class="season-filter">
+        <label for="season-select">Сезон</label>
+        <select id="season-select">
+            <option value="">Все сезоны</option>
+        </select>
+    </div>
 
-    <section class="section" id="series">
+    <section class="section" id="videos">
         <div class="section-header">
-            <h2>Серии</h2>
+            <h2>Видео</h2>
             <a href="#all">Наверх</a>
         </div>
-        <div class="video-grid" id="series-grid"></div>
-        <p class="empty-state" id="series-empty">Пока нет серий.</p>
+        <div class="video-grid" id="videos-grid"></div>
+        <p class="empty-state" id="videos-empty">Пока нет видео.</p>
     </section>
 
-    <section class="section" id="interviews">
+    <section class="section" id="demo">
         <div class="section-header">
-            <h2>Интервью</h2>
+            <h2>Демо-ролики</h2>
             <a href="#all">Наверх</a>
         </div>
-        <div class="video-grid" id="interviews-grid"></div>
-        <p class="empty-state" id="interviews-empty">Пока нет интервью.</p>
-    </section>
-
-    <section class="section" id="teasers">
-        <div class="section-header">
-            <h2>Тизеры</h2>
-            <a href="#all">Наверх</a>
-        </div>
-        <div class="video-grid" id="teasers-grid"></div>
-        <p class="empty-state" id="teasers-empty">Пока нет тизеров.</p>
+        <div class="video-grid" id="demo-grid"></div>
+        <p class="empty-state" id="demo-empty">Пока нет демо-роликов.</p>
     </section>
 </main>
 
@@ -85,9 +73,8 @@
 <script>
     (function () {
         const typeLabels = {
-            series: 'Серия',
-            interview: 'Интервью',
-            teaser: 'Тизер'
+            video: 'Видео',
+            demo: 'Демо-ролик'
         };
         const formatDate = (value) => {
             if (!value) return '';
@@ -130,18 +117,65 @@
         if (searchInput && queryParam) {
             searchInput.value = queryParam;
         }
+        const seasonSelect = document.getElementById('season-select');
+        const seasonParam = new URLSearchParams(window.location.search).get('season') || '';
+        if (seasonSelect) {
+            seasonSelect.value = seasonParam;
+        }
         const queryString = queryParam ? `?q=${encodeURIComponent(queryParam)}` : '';
         fetch(`/api/videos${queryString}`)
             .then((res) => res.ok ? res.json() : [])
             .then((videos) => {
-                const fresh = videos.slice(0, 6);
-                const series = videos.filter((item) => item.type === 'series');
-                const interviews = videos.filter((item) => item.type === 'interview');
-                const teasers = videos.filter((item) => item.type === 'teaser');
-                fillSection(fresh, 'fresh-grid', 'fresh-empty');
-                fillSection(series, 'series-grid', 'series-empty');
-                fillSection(interviews, 'interviews-grid', 'interviews-empty');
-                fillSection(teasers, 'teasers-grid', 'teasers-empty');
+                const cleaned = videos.filter((item) => item.type !== 'interview');
+                const seasons = Array.from(
+                    new Set(
+                        cleaned
+                            .map((item) => Number(item.season))
+                            .filter((value) => Number.isFinite(value) && value > 0)
+                    )
+                ).sort((a, b) => a - b);
+
+                if (seasonSelect) {
+                    const current = seasonSelect.value;
+                    seasonSelect.innerHTML = '<option value=\"\">Все сезоны</option>';
+                    seasons.forEach((season) => {
+                        const option = document.createElement('option');
+                        option.value = String(season);
+                        option.textContent = `Сезон ${season}`;
+                        seasonSelect.appendChild(option);
+                    });
+                    seasonSelect.value = seasons.includes(Number(current)) ? current : '';
+                }
+
+                const applySeasonFilter = (items) => {
+                    const seasonValue = seasonSelect && seasonSelect.value ? Number(seasonSelect.value) : null;
+                    if (!seasonValue) return items;
+                    return items.filter((item) => Number(item.season) === seasonValue);
+                };
+
+                const render = () => {
+                    const filtered = applySeasonFilter(cleaned);
+                    const regular = filtered.filter((item) => item.type !== 'demo');
+                    const demo = filtered.filter((item) => item.type === 'demo');
+                    fillSection(regular, 'videos-grid', 'videos-empty');
+                    fillSection(demo, 'demo-grid', 'demo-empty');
+                };
+
+                render();
+
+                if (seasonSelect) {
+                    seasonSelect.addEventListener('change', () => {
+                        const params = new URLSearchParams(window.location.search);
+                        if (seasonSelect.value) {
+                            params.set('season', seasonSelect.value);
+                        } else {
+                            params.delete('season');
+                        }
+                        const query = params.toString();
+                        history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
+                        render();
+                    });
+                }
             });
 
         const chips = Array.from(document.querySelectorAll('.filter-bar .chip'));

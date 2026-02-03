@@ -28,6 +28,8 @@ db.serialize(() => {
             filename TEXT NOT NULL,
             mime TEXT NOT NULL,
             preview_filename TEXT,
+            season INTEGER,
+            episode INTEGER,
             threshold INTEGER NOT NULL DEFAULT 90,
             created_at TEXT NOT NULL
         )
@@ -40,6 +42,12 @@ db.serialize(() => {
         const columns = new Set(rows.map((row) => row.name));
         if (!columns.has('preview_filename')) {
             db.run(`ALTER TABLE videos ADD COLUMN preview_filename TEXT`);
+        }
+        if (!columns.has('season')) {
+            db.run(`ALTER TABLE videos ADD COLUMN season INTEGER`);
+        }
+        if (!columns.has('episode')) {
+            db.run(`ALTER TABLE videos ADD COLUMN episode INTEGER`);
         }
     });
 });
@@ -109,10 +117,19 @@ app.get('/api/me', (req, res) => {
 
 app.get('/api/videos', (req, res) => {
     const params = [];
+    const where = [];
     let sql = 'SELECT * FROM videos';
     if (req.query.type) {
-        sql += ' WHERE type = ?';
+        where.push('type = ?');
         params.push(req.query.type);
+    }
+    const seasonParam = Number(req.query.season);
+    if (Number.isFinite(seasonParam) && seasonParam > 0) {
+        where.push('season = ?');
+        params.push(Math.floor(seasonParam));
+    }
+    if (where.length) {
+        sql += ` WHERE ${where.join(' AND ')}`;
     }
     const query = String(req.query.q || req.query.query || '').trim();
     sql += ' ORDER BY created_at DESC';
@@ -199,11 +216,21 @@ app.post('/api/videos', requireAuth, upload.fields([{ name: 'file', maxCount: 1 
         res.status(400).json({ error: 'fields_required' });
         return;
     }
-    const allowedTypes = new Set(['series', 'interview', 'teaser']);
+    const allowedTypes = new Set(['video', 'demo']);
     if (!allowedTypes.has(type)) {
         res.status(400).json({ error: 'invalid_type' });
         return;
     }
+
+    const parsePositiveInt = (value) => {
+        const num = Number(value);
+        if (!Number.isFinite(num) || num <= 0) return null;
+        return Math.floor(num);
+    };
+    const season = parsePositiveInt(req.body.season);
+    const episode = parsePositiveInt(req.body.episode);
+    const normalizedSeason = season && episode ? season : null;
+    const normalizedEpisode = season && episode ? episode : null;
 
     const createdAt = new Date().toISOString();
     const safeThreshold = Math.min(Math.max(Number(threshold) || 90, 60), 99);
@@ -214,14 +241,16 @@ app.post('/api/videos', requireAuth, upload.fields([{ name: 'file', maxCount: 1 
         file.filename,
         file.mimetype,
         preview ? preview.filename : null,
+        normalizedSeason,
+        normalizedEpisode,
         safeThreshold,
         createdAt
     ];
 
     db.run(
         `
-        INSERT INTO videos (title, type, description, filename, mime, preview_filename, threshold, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO videos (title, type, description, filename, mime, preview_filename, season, episode, threshold, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         params,
         function (err) {
@@ -244,11 +273,21 @@ app.put('/api/videos/:id', requireAuth, upload.fields([{ name: 'file', maxCount:
     const { title, type, description = '', threshold = 90 } = req.body;
     const file = req.files?.file?.[0];
     const preview = req.files?.preview?.[0];
-    const allowedTypes = new Set(['series', 'interview', 'teaser']);
+    const allowedTypes = new Set(['video', 'demo']);
     if (!title || !type || !allowedTypes.has(type)) {
         res.status(400).json({ error: 'fields_required' });
         return;
     }
+
+    const parsePositiveInt = (value) => {
+        const num = Number(value);
+        if (!Number.isFinite(num) || num <= 0) return null;
+        return Math.floor(num);
+    };
+    const season = parsePositiveInt(req.body.season);
+    const episode = parsePositiveInt(req.body.episode);
+    const normalizedSeason = season && episode ? season : null;
+    const normalizedEpisode = season && episode ? episode : null;
 
     db.get('SELECT * FROM videos WHERE id = ?', [req.params.id], (err, row) => {
         if (err || !row) {
@@ -264,13 +303,15 @@ app.put('/api/videos/:id', requireAuth, upload.fields([{ name: 'file', maxCount:
             threshold: safeThreshold,
             filename: file ? file.filename : row.filename,
             mime: file ? file.mimetype : row.mime,
-            preview_filename: preview ? preview.filename : row.preview_filename
+            preview_filename: preview ? preview.filename : row.preview_filename,
+            season: normalizedSeason,
+            episode: normalizedEpisode
         };
 
         db.run(
             `
             UPDATE videos
-            SET title = ?, type = ?, description = ?, filename = ?, mime = ?, preview_filename = ?, threshold = ?
+            SET title = ?, type = ?, description = ?, filename = ?, mime = ?, preview_filename = ?, season = ?, episode = ?, threshold = ?
             WHERE id = ?
             `,
             [
@@ -280,6 +321,8 @@ app.put('/api/videos/:id', requireAuth, upload.fields([{ name: 'file', maxCount:
                 updated.filename,
                 updated.mime,
                 updated.preview_filename,
+                updated.season,
+                updated.episode,
                 updated.threshold,
                 row.id
             ],

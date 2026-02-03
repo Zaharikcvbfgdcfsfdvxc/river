@@ -82,10 +82,136 @@
         const otherList = document.getElementById('other-list');
 
         const typeLabels = {
-            series: 'Серия',
-            interview: 'Интервью',
-            teaser: 'Тизер'
+            video: 'Видео',
+            demo: 'Демо-ролик'
         };
+
+        const parseNumber = (value) => {
+            const num = Number(value);
+            if (!Number.isFinite(num) || num <= 0) return null;
+            return Math.floor(num);
+        };
+
+        const getSeasonEpisode = (item) => {
+            const season = parseNumber(item.season);
+            const episode = parseNumber(item.episode);
+            if (season && episode) {
+                return { season, episode };
+            }
+            return null;
+        };
+
+        const normalizeText = (value) =>
+            String(value || '')
+                .toLowerCase()
+                .replace(/ё/g, 'е')
+                .replace(/[^a-zа-я0-9]+/gi, ' ')
+                .trim();
+
+        const stripEpisodeMarkers = (value) =>
+            value
+                .replace(/(?:сезон|season|s)\s*\d{1,2}/gi, ' ')
+                .replace(/(?:серия|сер\.?|эпизод|episode|ep|e)\s*\d{1,3}/gi, ' ')
+                .replace(/\d{1,2}\s*[xх]\s*\d{1,3}/gi, ' ')
+                .replace(/\d{1,3}/g, ' ');
+
+        const parseTitleMeta = (title) => {
+            const lower = String(title || '').toLowerCase().replace(/ё/g, 'е');
+            let season = null;
+            let episode = null;
+            let match = lower.match(
+                /(?:сезон|season|s)\s*(\d{1,2})\s*(?:серия|сер\.?|эпизод|episode|ep|e)\s*(\d{1,3})/i
+            );
+            if (match) {
+                season = parseNumber(match[1]);
+                episode = parseNumber(match[2]);
+            }
+            if (!season || !episode) {
+                match = lower.match(/(\d{1,2})\s*[xх]\s*(\d{1,3})/i);
+                if (match) {
+                    season = parseNumber(match[1]);
+                    episode = parseNumber(match[2]);
+                }
+            }
+            if (!episode) {
+                match = lower.match(/(?:серия|сер\.?|эпизод|episode|ep|e)\s*(\d{1,3})/i);
+                if (match) {
+                    episode = parseNumber(match[1]);
+                }
+            }
+            if (!episode) {
+                match = lower.match(/\b(\d{1,3})\b/);
+                if (match) {
+                    episode = parseNumber(match[1]);
+                }
+            }
+            const baseTitle = normalizeText(stripEpisodeMarkers(lower));
+            return { season, episode, baseTitle };
+        };
+
+        const levenshtein = (a, b) => {
+            if (a === b) return 0;
+            const alen = a.length;
+            const blen = b.length;
+            if (alen === 0) return blen;
+            if (blen === 0) return alen;
+            const matrix = Array.from({ length: alen + 1 }, () => new Array(blen + 1));
+            for (let i = 0; i <= alen; i += 1) matrix[i][0] = i;
+            for (let j = 0; j <= blen; j += 1) matrix[0][j] = j;
+            for (let i = 1; i <= alen; i += 1) {
+                for (let j = 1; j <= blen; j += 1) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j - 1] + cost
+                    );
+                }
+            }
+            return matrix[alen][blen];
+        };
+
+        const titleSimilarity = (a, b) => {
+            if (!a || !b) return 0;
+            if (a === b) return 1;
+            if (a.includes(b) || b.includes(a)) return 0.9;
+            const dist = levenshtein(a, b);
+            return 1 - dist / Math.max(a.length, b.length);
+        };
+
+        const findNextByTitle = (current, list) => {
+            const currentMeta = parseTitleMeta(current.title);
+            if (!currentMeta.episode) return null;
+            const targetEpisode = currentMeta.episode + 1;
+            const candidates = list
+                .map((item) => {
+                    const meta = parseTitleMeta(item.title);
+                    return {
+                        item,
+                        meta,
+                        similarity: titleSimilarity(currentMeta.baseTitle, meta.baseTitle)
+                    };
+                })
+                .filter(({ meta, similarity }) => meta.episode === targetEpisode && similarity >= 0.6);
+            if (!candidates.length) return null;
+            candidates.sort((a, b) => b.similarity - a.similarity);
+            return candidates[0].item;
+        };
+
+        const buildMetaLine = (item) => {
+            const label = typeLabels[item.type] || '\u0412\u0438\u0434\u0435\u043e';
+            const parts = [label];
+            const meta = getSeasonEpisode(item);
+            if (meta) {
+                parts.push(`\u0421\u0435\u0437\u043e\u043d ${meta.season} \u2022 \u0421\u0435\u0440\u0438\u044f ${meta.episode}`);
+            }
+            const dateLabel = formatDate(item.created_at);
+            if (dateLabel) {
+                parts.push(dateLabel);
+            }
+            return parts.join(' \u2022 ');
+        };
+
 
         const formatDate = (value) => {
             if (!value) return '';
@@ -110,7 +236,7 @@
                 }
                 titleEl.textContent = item.title;
                 kickerEl.textContent = typeLabels[item.type] || 'Видео';
-                metaEl.textContent = `${typeLabels[item.type] || 'Видео'} • ${formatDate(item.created_at)}`;
+                metaEl.textContent = buildMetaLine(item);
                 descEl.textContent = item.description || '';
                 video.src = item.url;
                 if (item.preview_url) {
@@ -133,20 +259,56 @@
         fetch('/api/videos')
             .then((res) => res.ok ? res.json() : [])
             .then((videos) => {
-                const currentIndex = videos.findIndex((item) => String(item.id) === String(id));
-                const nextItem = currentIndex >= 0 ? videos[currentIndex + 1] : null;
+                const cleaned = videos.filter((item) => item.type !== 'interview');
+                const current = cleaned.find((item) => String(item.id) === String(id));
+                const candidates = current
+                    ? cleaned.filter((item) => String(item.id) !== String(id) && item.type === current.type)
+                    : [];
+
+                const findNextBySeason = (currentItem, list) => {
+                    const currentMeta = getSeasonEpisode(currentItem);
+                    if (!currentMeta) return null;
+                    const direct = list.find((item) => {
+                        const meta = getSeasonEpisode(item);
+                        return meta && meta.season === currentMeta.season && meta.episode === currentMeta.episode + 1;
+                    });
+                    if (direct) return direct;
+                    const nextSeason = list
+                        .map((item) => ({ item, meta: getSeasonEpisode(item) }))
+                        .filter(({ meta }) => meta && meta.season === currentMeta.season + 1);
+                    if (!nextSeason.length) return null;
+                    nextSeason.sort((a, b) => a.meta.episode - b.meta.episode);
+                    return nextSeason[0].item;
+                };
+
+                let nextItem = null;
+                if (current) {
+                    nextItem = findNextBySeason(current, candidates) || findNextByTitle(current, candidates);
+                }
                 if (nextItem) {
-                    nextThumb.textContent = typeLabels[nextItem.type] || 'Видео';
+                    const nextLabel = typeLabels[nextItem.type] || '\u0412\u0438\u0434\u0435\u043e';
+                    nextThumb.textContent = nextLabel;
+                    if (nextItem.preview_url) {
+                        nextThumb.style.backgroundImage = `url('${nextItem.preview_url}')`;
+                        nextThumb.style.backgroundSize = 'cover';
+                        nextThumb.style.backgroundPosition = 'center';
+                    } else {
+                        nextThumb.removeAttribute('style');
+                    }
                     nextTitle.textContent = nextItem.title;
-                    nextMeta.textContent = `${typeLabels[nextItem.type] || 'Видео'} • ${formatDate(nextItem.created_at)}`;
+                    nextMeta.textContent = buildMetaLine(nextItem);
                     nextButton.href = `index_player.html?id=${nextItem.id}`;
                     nextButton.classList.remove('disabled');
                 } else {
                     nextButton.href = '#';
                     nextButton.classList.add('disabled');
+                    nextThumb.textContent = '\u2014';
+                    nextThumb.removeAttribute('style');
+                    nextTitle.textContent = '\u041f\u043e\u043a\u0430 \u043d\u0435\u0442';
+                    nextMeta.textContent = '';
                 }
 
-                const others = videos.filter((item) => String(item.id) !== String(id)).slice(0, 3);
+                const others = cleaned.filter((item) => String(item.id) !== String(id)).slice(0, 3);
                 otherList.innerHTML = '';
                 if (!others.length) {
                     otherList.innerHTML = '<p class="contact-meta">Пока нет других видео.</p>';

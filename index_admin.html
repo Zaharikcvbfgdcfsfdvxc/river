@@ -32,7 +32,7 @@
         <div class="admin-auth-card">
             <p class="eyebrow">Доступ</p>
             <h2>Вход в админ-панель</h2>
-            <p class="admin-lead">Добавляйте релизы озвучки для аудитории, интервью и тизеры, настраивайте тип и момент появления кнопки следующего ролика.</p>
+            <p class="admin-lead">Добавляйте релизы озвучки для аудитории и демо-ролики, настраивайте тип и момент появления кнопки следующего ролика.</p>
             <form class="admin-form" id="admin-login">
                 <label>
                     Логин
@@ -51,7 +51,7 @@
         <div>
             <p class="eyebrow">Админ</p>
             <h1>Загрузка работ студии</h1>
-            <p class="admin-lead">Добавляйте релизы озвучки для аудитории, интервью и тизеры, настраивайте тип и момент появления кнопки следующего ролика.</p>
+            <p class="admin-lead">Добавляйте релизы озвучки для аудитории и демо-ролики, настраивайте тип и момент появления кнопки следующего ролика.</p>
         </div>
         <div class="admin-stats">
             <div class="stat-card">
@@ -77,15 +77,24 @@
                 <label>
                     Тип видео
                     <select name="type" required>
-                        <option value="series">Серия</option>
-                        <option value="interview">Интервью</option>
-                        <option value="teaser">Тизер</option>
+                        <option value="video">Видео</option>
+                        <option value="demo">Демо-ролик</option>
                     </select>
                 </label>
                 <label>
                     Описание
                     <textarea name="description" placeholder="Короткое описание"></textarea>
                 </label>
+                <div class="form-row">
+                    <label>
+                        Сезон
+                        <input type="number" name="season" min="1" placeholder="1">
+                    </label>
+                    <label>
+                        Серия
+                        <input type="number" name="episode" min="1" placeholder="1">
+                    </label>
+                </div>
                 <label>
                     Файл видео
                     <input type="file" name="file" accept="video/*">
@@ -180,9 +189,8 @@
         const thresholdInput = form.querySelector('input[name="threshold"]');
 
         const typeMap = {
-            series: 'Серия',
-            interview: 'Интервью',
-            teaser: 'Тизер'
+            video: 'Видео',
+            demo: 'Демо-ролик'
         };
 
         const renderQueue = (items) => {
@@ -195,10 +203,11 @@
             items.forEach((item) => {
                 const card = document.createElement('div');
                 card.className = 'queue-card';
+                const seasonLabel = item.season && item.episode ? `Сезон ${item.season} • Серия ${item.episode} • ` : '';
                 card.innerHTML = `
                     <div>
                         <h4>${item.title}</h4>
-                        <p class="player-meta">${typeMap[item.type] || 'Видео'} • Порог ${item.threshold}%</p>
+                        <p class="player-meta">${typeMap[item.type] || 'Видео'} • ${seasonLabel}Порог ${item.threshold}%</p>
                         <p class="contact-meta">${item.description || 'Без описания'}</p>
                     </div>
                     <div class="queue-actions">
@@ -228,8 +237,10 @@
         const setEditMode = (item) => {
             videoIdInput.value = item.id;
             form.title.value = item.title;
-            form.type.value = item.type;
+            form.type.value = typeMap[item.type] ? item.type : 'video';
             form.description.value = item.description || '';
+            form.season.value = item.season || '';
+            form.episode.value = item.episode || '';
             thresholdInput.value = item.threshold || 90;
             updateThresholdLabel();
             submitButton.textContent = 'Сохранить изменения';
@@ -243,6 +254,8 @@
             thresholdInput.value = 90;
             updateThresholdLabel();
             fileInput.required = true;
+            form.season.value = '';
+            form.episode.value = '';
         };
 
         cancelEditButton.addEventListener('click', resetForm);
