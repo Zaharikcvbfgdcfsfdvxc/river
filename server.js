@@ -34,6 +34,12 @@ db.serialize(() => {
             created_at TEXT NOT NULL
         )
     `);
+    db.run(`
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+    `);
 });
 
 db.serialize(() => {
@@ -84,6 +90,50 @@ const normalizeRow = (row) => ({
     url: `/uploads/${row.filename}`,
     preview_url: row.preview_filename ? `/uploads/${row.preview_filename}` : ''
 });
+
+const getSetting = (key, fallback) => new Promise((resolve) => {
+    db.get('SELECT value FROM settings WHERE key = ?', [key], (err, row) => {
+        if (err || !row || !row.value) {
+            resolve(fallback);
+            return;
+        }
+        try {
+            const parsed = JSON.parse(row.value);
+            resolve({ ...fallback, ...parsed });
+        } catch (e) {
+            resolve(fallback);
+        }
+    });
+});
+
+const setSetting = (key, value) => new Promise((resolve, reject) => {
+    const payload = JSON.stringify(value);
+    db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, payload], (err) => {
+        if (err) {
+            reject(err);
+            return;
+        }
+        resolve();
+    });
+});
+
+const parseBoolean = (value, fallback = false) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.trim().toLowerCase() === 'true';
+    if (typeof value === 'number') return value === 1;
+    return fallback;
+};
+
+const clampBlur = (value, fallback = 18) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return fallback;
+    return Math.min(Math.max(Math.round(num), 0), 32);
+};
+
+const defaultBackgroundSettings = {
+    enabled: true,
+    blur: 18
+};
 
 const requireAuth = (req, res, next) => {
     if (req.session && req.session.auth === true) {
@@ -216,7 +266,7 @@ app.post('/api/videos', requireAuth, upload.fields([{ name: 'file', maxCount: 1 
         res.status(400).json({ error: 'fields_required' });
         return;
     }
-    const allowedTypes = new Set(['video', 'demo']);
+    const allowedTypes = new Set(['video', 'demo', 'background']);
     if (!allowedTypes.has(type)) {
         res.status(400).json({ error: 'invalid_type' });
         return;
@@ -273,7 +323,7 @@ app.put('/api/videos/:id', requireAuth, upload.fields([{ name: 'file', maxCount:
     const { title, type, description = '', threshold = 90 } = req.body;
     const file = req.files?.file?.[0];
     const preview = req.files?.preview?.[0];
-    const allowedTypes = new Set(['video', 'demo']);
+    const allowedTypes = new Set(['video', 'demo', 'background']);
     if (!title || !type || !allowedTypes.has(type)) {
         res.status(400).json({ error: 'fields_required' });
         return;
@@ -341,6 +391,23 @@ app.put('/api/videos/:id', requireAuth, upload.fields([{ name: 'file', maxCount:
             }
         );
     });
+});
+
+app.get('/api/settings/background', async (req, res) => {
+    const settings = await getSetting('background', defaultBackgroundSettings);
+    res.json(settings);
+});
+
+app.put('/api/settings/background', requireAuth, async (req, res) => {
+    const enabled = parseBoolean(req.body?.enabled, defaultBackgroundSettings.enabled);
+    const blur = clampBlur(req.body?.blur, defaultBackgroundSettings.blur);
+    const payload = { enabled, blur };
+    try {
+        await setSetting('background', payload);
+        res.json(payload);
+    } catch (err) {
+        res.status(500).json({ error: 'db_error' });
+    }
 });
 
 app.delete('/api/videos/:id', requireAuth, (req, res) => {

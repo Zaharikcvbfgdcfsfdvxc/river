@@ -11,6 +11,37 @@ html, body {
     scroll-behavior: smooth;
 }
 
+:root {
+    --bg-blur: 18px;
+}
+
+.video-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.video-bg.is-active {
+    opacity: 1;
+}
+
+.video-bg-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(var(--bg-blur, 18px)) saturate(1.1) brightness(0.55);
+    transform: scale(1.05);
+}
+
+.video-bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
 .top-bar {
     height: 72px;
     width: 100%;
@@ -157,6 +188,55 @@ html, body {
     flex-wrap: wrap;
     color: rgba(255, 255, 255, 0.6);
     font-size: 14px;
+}
+
+.bg-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.bg-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.bg-toggle-track {
+    width: 42px;
+    height: 22px;
+    background: #1f1f1f;
+    border-radius: 999px;
+    border: 1px solid #2d2d2d;
+    position: relative;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.bg-toggle-track::after {
+    content: "";
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    transition: transform 0.2s ease;
+}
+
+.bg-toggle input:checked + .bg-toggle-track {
+    background: #f04b4b;
+    border-color: #f04b4b;
+}
+
+.bg-toggle input:checked + .bg-toggle-track::after {
+    transform: translateX(18px);
 }
 
 .hero-video {
@@ -646,6 +726,27 @@ html, body {
     padding: 24px;
     display: grid;
     gap: 12px;
+    position: relative;
+}
+
+.admin-auth-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #2d2d2d;
+    background: #121212;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.admin-auth-close:hover {
+    color: #fff;
+    border-color: #f04b4b;
 }
 
 .locked {
@@ -684,6 +785,26 @@ html, body {
     padding: 20px;
     display: grid;
     gap: 16px;
+}
+
+.admin-alert {
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    background-color: #171717;
+    border: 1px solid #2d2d2d;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-alert.danger {
+    background-color: #2a1212;
+    border-color: #5a1a1a;
+    color: #f6c2c2;
+}
+
+.admin-alert strong {
+    color: #fff;
 }
 
 .logout-button {
@@ -743,6 +864,35 @@ html, body {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+}
+
+.admin-actions .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 8px;
+    opacity: 0;
+    visibility: hidden;
+    animation: spin 0.8s linear infinite;
+}
+
+.admin-actions .is-loading .spinner {
+    opacity: 1;
+    visibility: visible;
+}
+
+.admin-actions .is-loading {
+    cursor: progress;
+    opacity: 0.85;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .admin-note {

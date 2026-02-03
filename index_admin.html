@@ -31,6 +31,7 @@
 <main class="page admin-page">
     <div class="admin-auth" id="admin-auth">
         <div class="admin-auth-card">
+            <button class="admin-auth-close" type="button" id="auth-close" aria-label="Закрыть">×</button>
             <p class="eyebrow">Доступ</p>
             <h2>Вход в админ-панель</h2>
             <p class="admin-lead">Добавляйте релизы озвучки для аудитории и демо-ролики, настраивайте тип и момент появления кнопки следующего ролика.</p>
@@ -69,6 +70,10 @@
     <section class="admin-grid">
         <div class="admin-card">
             <h2>Новый ролик</h2>
+            <div class="admin-alert danger">
+                <strong>Важно:</strong> называйте видео по шаблону «Название — сезон — серия», например:
+                «Город света — 1 сезон — 3 серия».
+            </div>
             <form class="admin-form" id="upload-form">
                 <input type="hidden" name="video_id" id="video-id">
                 <label>
@@ -80,6 +85,7 @@
                     <select name="type" required>
                         <option value="video">Видео</option>
                         <option value="demo">Демо-ролик</option>
+                        <option value="background">Фоновое видео</option>
                     </select>
                 </label>
                 <label>
@@ -111,7 +117,10 @@
                     <span class="range-value" id="threshold-value">90%</span>
                 </label>
                 <div class="admin-actions">
-                    <button class="primary" type="submit" id="submit-button">Добавить видео</button>
+                    <button class="primary" type="submit" id="submit-button">
+                        <span id="submit-label">Добавить видео</span>
+                        <span class="spinner" aria-hidden="true"></span>
+                    </button>
                     <button class="ghost" type="button" id="cancel-edit">Отмена</button>
                 </div>
                 <p class="admin-note">Видео сохраняются на сервере и появляются в библиотеке.</p>
@@ -126,6 +135,26 @@
             </div>
         </aside>
     </section>
+
+    <section class="admin-grid admin-settings">
+        <div class="admin-card">
+            <h2>Фон сайта</h2>
+            <p class="admin-lead">Настройте видео-фон: включение и силу размытия.</p>
+            <div class="admin-form" id="bg-settings">
+                <label class="bg-toggle">
+                    <input type="checkbox" id="bg-enabled">
+                    <span class="bg-toggle-track"></span>
+                    <span class="bg-toggle-text">Видео-фон включён</span>
+                </label>
+                <label>
+                    Сила размытия
+                    <input type="range" id="bg-blur" min="0" max="32" value="18">
+                    <span class="range-value" id="bg-blur-value">18px</span>
+                </label>
+                <p class="admin-note" id="bg-status"></p>
+            </div>
+        </div>
+    </section>
 </main>
 
 <footer class="footer">
@@ -138,6 +167,7 @@
         const loginForm = document.getElementById('admin-login');
         const authError = document.getElementById('auth-error');
         const logoutButton = document.getElementById('logout-button');
+        const authClose = document.getElementById('auth-close');
 
         const unlock = () => {
             authOverlay.classList.add('hidden');
@@ -148,6 +178,20 @@
             authOverlay.classList.remove('hidden');
             document.body.classList.add('locked');
         };
+
+        if (authClose) {
+            authClose.addEventListener('click', () => {
+                authOverlay.classList.add('hidden');
+                document.body.classList.remove('locked');
+            });
+        }
+
+        authOverlay.addEventListener('click', (event) => {
+            if (event.target === authOverlay) {
+                authOverlay.classList.add('hidden');
+                document.body.classList.remove('locked');
+            }
+        });
 
         fetch('/api/me')
             .then((res) => (res.ok ? unlock() : lock()))
@@ -179,6 +223,7 @@
         const form = document.getElementById('upload-form');
         const videoIdInput = document.getElementById('video-id');
         const submitButton = document.getElementById('submit-button');
+        const submitLabel = document.getElementById('submit-label');
         const cancelEditButton = document.getElementById('cancel-edit');
         const uploadError = document.getElementById('upload-error');
         const fileInput = form.querySelector('input[name="file"]');
@@ -188,10 +233,77 @@
         const storedCount = document.getElementById('stored-count');
         const nextThreshold = document.getElementById('next-threshold');
         const thresholdInput = form.querySelector('input[name="threshold"]');
+        const bgEnabledInput = document.getElementById('bg-enabled');
+        const bgBlurInput = document.getElementById('bg-blur');
+        const bgBlurValue = document.getElementById('bg-blur-value');
+        const bgStatus = document.getElementById('bg-status');
 
         const typeMap = {
             video: 'Видео',
-            demo: 'Демо-ролик'
+            demo: 'Демо-ролик',
+            background: 'Фоновое видео'
+        };
+
+        const setSubmitLabel = (text) => {
+            if (submitLabel) {
+                submitLabel.textContent = text;
+            } else {
+                submitButton.textContent = text;
+            }
+        };
+
+        const setUploading = (state) => {
+            submitButton.classList.toggle('is-loading', state);
+            submitButton.disabled = state;
+        };
+
+        const updateBlurLabel = () => {
+            if (bgBlurInput && bgBlurValue) {
+                bgBlurValue.textContent = `${bgBlurInput.value}px`;
+            }
+        };
+
+        const loadBackgroundSettings = () => {
+            if (!bgEnabledInput || !bgBlurInput) return;
+            fetch('/api/settings/background')
+                .then((res) => res.ok ? res.json() : null)
+                .then((data) => {
+                    if (!data) return;
+                    bgEnabledInput.checked = data.enabled !== false;
+                    bgBlurInput.value = Number.isFinite(Number(data.blur)) ? Number(data.blur) : 18;
+                    updateBlurLabel();
+                });
+        };
+
+        let bgSaveTimer;
+        const saveBackgroundSettings = () => {
+            if (!bgEnabledInput || !bgBlurInput) return;
+            bgStatus.textContent = 'Сохраняем...';
+            const payload = {
+                enabled: bgEnabledInput.checked,
+                blur: Number(bgBlurInput.value)
+            };
+            fetch('/api/settings/background', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then((res) => res.ok ? res.json() : null)
+                .then((data) => {
+                    if (!data) {
+                        bgStatus.textContent = 'Не удалось сохранить настройки.';
+                        return;
+                    }
+                    bgStatus.textContent = 'Настройки сохранены.';
+                })
+                .catch(() => {
+                    bgStatus.textContent = 'Ошибка сохранения.';
+                });
+        };
+
+        const scheduleBackgroundSave = () => {
+            clearTimeout(bgSaveTimer);
+            bgSaveTimer = setTimeout(saveBackgroundSettings, 300);
         };
 
         const renderQueue = (items) => {
@@ -234,6 +346,18 @@
                 .then((items) => renderQueue(items));
         };
         loadList();
+        loadBackgroundSettings();
+
+        if (bgBlurInput) {
+            bgBlurInput.addEventListener('input', () => {
+                updateBlurLabel();
+                scheduleBackgroundSave();
+            });
+        }
+
+        if (bgEnabledInput) {
+            bgEnabledInput.addEventListener('change', scheduleBackgroundSave);
+        }
 
         const setEditMode = (item) => {
             videoIdInput.value = item.id;
@@ -244,14 +368,14 @@
             form.episode.value = item.episode || '';
             thresholdInput.value = item.threshold || 90;
             updateThresholdLabel();
-            submitButton.textContent = 'Сохранить изменения';
+            setSubmitLabel('Сохранить изменения');
             fileInput.required = false;
         };
 
         const resetForm = () => {
             form.reset();
             videoIdInput.value = '';
-            submitButton.textContent = 'Добавить видео';
+            setSubmitLabel('Добавить видео');
             thresholdInput.value = 90;
             updateThresholdLabel();
             fileInput.required = true;
@@ -299,6 +423,7 @@
 
         form.addEventListener('submit', (event) => {
             event.preventDefault();
+            setUploading(true);
             const data = new FormData(form);
             const id = videoIdInput.value;
             const url = id ? `/api/videos/${id}` : '/api/videos';
@@ -323,6 +448,9 @@
                 })
                 .catch(() => {
                     uploadError.textContent = 'Ошибка загрузки. Проверьте сервер.';
+                })
+                .finally(() => {
+                    setUploading(false);
                 });
         });
 
